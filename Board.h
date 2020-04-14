@@ -17,26 +17,31 @@ class Board {
     const std::string fen;
   };
 
-  Board();
-  Board(const std::string& fen);
+  struct WrongSquareException {
+    WrongSquareException(const std::string& s) : square(s) {}
+    const std::string square;
+  };
 
-  Board makeMove(const Move& move) const;
-  const std::string& createFEN() const;
+  Board(const std::string& fen);
+  Board(const Board& orig, Move move);
+
   bool isPositionValid() const;
   std::vector<Move> calculcateAllMoves() const;
+  inline char getSquare(size_t line, size_t row) const;
+  char getSquare(const std::string& square) const;
 
  private:
-  void getFiguresFromFEN(std::string partial_fen);
+  void setFiguresFromFEN(std::string partial_fen);
   void setFiguresForOneLineFromFen(const std::string& one_line, size_t line);
-  void getMiscDataFromFEN(std::string partial_fen);
+  void setMiscDataFromFEN(std::string partial_fen);
   void setCastlingsFromFen(const std::string& castlings);
 
-  std::array<std::array<char, kBoardSize>, kBoardSize> fields_;
+  std::array<std::array<char, kBoardSize>, kBoardSize> squares_;
   char castlings_ = 0x0;
   Square en_passant_target_square_;
   bool white_to_move_{true};
-  short halfmove_clock_{0};
-  short fullmove_number_{0};
+  unsigned halfmove_clock_{0};
+  unsigned fullmove_number_{0};
 };
 
 #endif  // BOARD_H

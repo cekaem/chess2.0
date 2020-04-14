@@ -24,8 +24,8 @@ enum class Castling {
 };
 
 struct Square {
-  const char letter{'\0'};
-  const char number{'\0'};
+  char letter{'\0'};
+  char number{'\0'};
 
   static bool isValid(const std::string& field) {
     return field.size() == 2u && field[0] >= 'a' && field[0] <= 'h' &&
