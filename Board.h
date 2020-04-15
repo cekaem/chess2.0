@@ -3,6 +3,7 @@
 
 #include <array>
 #include <string>
+#include <sstream>
 #include <vector>
 
 #include "Types.h"
@@ -12,33 +13,42 @@ class Board {
  public:
   static constexpr size_t kBoardSize = 8;
 
-  struct WrongFENException {
-    WrongFENException(const std::string& f) : fen(f) {}
+  struct InvalidFENException {
+    InvalidFENException(const std::string& f) : fen(f) {}
     const std::string fen;
   };
 
-  struct WrongSquareException {
-    WrongSquareException(const std::string& s) : square(s) {}
+  struct InvalidSquareException {
+    InvalidSquareException(const std::string& s) : square(s) {}
     const std::string square;
   };
 
-  Board(const std::string& fen);
-  Board(const Board& orig, Move move);
+  struct IndexHelper {
+    char& operator[](size_t index) {
+      return (*row)[index];
+    }
 
-  bool isPositionValid() const;
-  std::vector<Move> calculcateAllMoves() const;
-  inline char getSquare(size_t line, size_t row) const;
+    std::array<char, kBoardSize>* row = nullptr;
+  } index_helper;
+
+  Board(const std::string& fen);
+
+  IndexHelper& operator[](size_t index);
   char getSquare(const std::string& square) const;
+  bool canCastle(Castling castling) const;
+  std::string createFEN() const;
 
  private:
   void setFiguresFromFEN(std::string partial_fen);
-  void setFiguresForOneLineFromFen(const std::string& one_line, size_t line);
+  void setFiguresForOneLineFromFEN(const std::string& one_line, size_t line);
   void setMiscDataFromFEN(std::string partial_fen);
-  void setCastlingsFromFen(const std::string& castlings);
+  void setCastlingsFromFEN(const std::string& castlings);
+  void writeFiguresToFEN(std::stringstream& fen) const;
+  void writeMiscDataToFEN(std::stringstream& fen) const;
 
   std::array<std::array<char, kBoardSize>, kBoardSize> squares_;
   char castlings_ = 0x0;
-  Square en_passant_target_square_;
+  Square en_passant_target_square_{Square::InvalidSquare};
   bool white_to_move_{true};
   unsigned halfmove_clock_{0};
   unsigned fullmove_number_{0};
