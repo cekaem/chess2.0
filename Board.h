@@ -38,6 +38,19 @@ class Board {
   bool canCastle(Castling castling) const;
   std::string createFEN() const;
 
+  bool whiteToMove() const {
+    return white_to_move_;
+  }
+
+  void changeSideToMove() {
+    white_to_move_ = !white_to_move_;
+  }
+
+  // This operator compares only positions of all pieces. It does not
+  // compare all misc data (castlings, en passant, number of moves).
+  // It's for tests only.
+  bool operator==(const std::string& fen) const;
+
  private:
   void setFiguresFromFEN(std::string partial_fen);
   void setFiguresForOneLineFromFEN(const std::string& one_line, size_t line);

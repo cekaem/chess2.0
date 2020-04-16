@@ -16,8 +16,8 @@ TEST_PROCEDURE(Board_fen_constructor_valid_fens) {
     VERIFY_EQUALS(board.getSquare("a1"), 'R');
     VERIFY_EQUALS(board.getSquare("d1"), 'Q');
     VERIFY_EQUALS(board.getSquare("c2"), 'P');
-    VERIFY_EQUALS(board.getSquare("b3"), ' ');
-    VERIFY_EQUALS(board.getSquare("f6"), ' ');
+    VERIFY_FALSE(board.getSquare("b3"));
+    VERIFY_FALSE(board.getSquare("f6"));
     VERIFY_EQUALS(board.getSquare("e7"), 'p');
     VERIFY_EQUALS(board.getSquare("c8"), 'b');
     VERIFY_EQUALS(board.getSquare("a8"), 'r');
@@ -100,7 +100,7 @@ TEST_PROCEDURE(Board_indexing) {
   VERIFY_EQUALS(board[0][0], 'R');
   VERIFY_EQUALS(board[0][1], 'P');
   VERIFY_EQUALS(board[1][0], 'N');
-  VERIFY_EQUALS(board[2][2], ' ');
+  VERIFY_FALSE(board[2][2]);
   VERIFY_EQUALS(board[3][6], 'p');
   VERIFY_EQUALS(board[7][7], 'r');
   board[2][2] = 'q';

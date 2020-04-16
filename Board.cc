@@ -6,7 +6,7 @@ Square Square::InvalidSquare = {-1, -1};
 
 Board::Board(const std::string& fen) {
   std::array<char, kBoardSize> row;
-  row.fill(' ');
+  row.fill(0x0);
   squares_.fill(row);
 
   std::string::size_type space_position = fen.find(' ');
@@ -161,7 +161,7 @@ void Board::writeFiguresToFEN(std::stringstream& fen) const {
   for (int row = kBoardSize - 1; row >= 0; --row) {
     int empty_lines = 0;
     for (size_t line = 0; line < kBoardSize; ++line) {
-      if (squares_[line][row] == ' ') {
+      if (squares_[line][row] == 0x0) {
         ++empty_lines;
       } else {
         if (empty_lines > 0) {
@@ -208,6 +208,11 @@ void Board::writeMiscDataToFEN(std::stringstream& fen) const {
     fen << " " << en_passant_target_square_.letter << en_passant_target_square_.number << " ";
   }
   fen << halfmove_clock_ << " " << fullmove_number_;
+}
+
+bool Board::operator==(const std::string& fen) const {
+  Board second(fen);
+  return squares_ == second.squares_;
 }
 
 Board::IndexHelper& Board::operator[](size_t index) {
