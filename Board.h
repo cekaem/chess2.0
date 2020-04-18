@@ -2,6 +2,7 @@
 #define BOARD_H
 
 #include <array>
+#include <ostream>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -46,9 +47,18 @@ class Board {
     white_to_move_ = !white_to_move_;
   }
 
-  // This operator compares only positions of all pieces. It does not
-  // compare all misc data (castlings, en passant, number of moves).
-  // It's for tests only.
+  void incrementNumberOfMoves() {
+    ++fullmove_number_;
+  }
+
+  void incrementNumberOfHalfMoves() {
+    ++halfmove_clock_;
+  }
+
+  void resetNumberOfHalfMoves() {
+    halfmove_clock_ = 0;
+  }
+
   bool operator==(const std::string& fen) const;
 
  private:
@@ -64,7 +74,9 @@ class Board {
   Square en_passant_target_square_{Square::InvalidSquare};
   bool white_to_move_{true};
   unsigned halfmove_clock_{0};
-  unsigned fullmove_number_{0};
+  unsigned fullmove_number_{1};
 };
+
+std::ostream& operator<<(std::ostream& ostr, const Board& board);
 
 #endif  // BOARD_H

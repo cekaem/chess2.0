@@ -4,6 +4,11 @@
 
 Square Square::InvalidSquare = {-1, -1};
 
+std::ostream& operator<<(std::ostream& ostr, const Board& move) {
+  ostr << move.createFEN();
+  return ostr;
+}
+
 Board::Board(const std::string& fen) {
   std::array<char, kBoardSize> row;
   row.fill(0x0);
@@ -139,7 +144,6 @@ void Board::setMiscDataFromFEN(std::string partial_fen) {
   if (utils::str_2_uint(halfmove_clock_str, halfmove_clock_) == false) {
     throw InvalidFENException(partial_fen);
   }
-  halfmove_clock_ *= 2;
   partial_fen = partial_fen.substr(space_position);
   if (partial_fen.size() < 2 || partial_fen[0] != ' ') {  // 2 == length(" 0")
     throw InvalidFENException(partial_fen);
@@ -212,7 +216,12 @@ void Board::writeMiscDataToFEN(std::stringstream& fen) const {
 
 bool Board::operator==(const std::string& fen) const {
   Board second(fen);
-  return squares_ == second.squares_;
+  return squares_ == second.squares_ &&
+         en_passant_target_square_ == second.en_passant_target_square_ &&
+         halfmove_clock_ == second.halfmove_clock_ &&
+         fullmove_number_ == second.fullmove_number_ &&
+         castlings_ == second.castlings_ &&
+         white_to_move_ == second.white_to_move_;
 }
 
 Board::IndexHelper& Board::operator[](size_t index) {
