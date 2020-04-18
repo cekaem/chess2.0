@@ -35,7 +35,9 @@ class MoveCalculator {
 
   bool handlePossibleMove(size_t old_line, size_t old_row,
                           size_t new_line, size_t new_row);
-  void handleMove(Board& board, bool is_check);
+  void handleMove(Board& board, bool is_king_capture);
+  void handlePossiblePawnsCapture(size_t line, size_t row);
+  void handlePawnPromotion(const Board& board, size_t line, size_t row);
 
   Board board_;
   const bool look_for_check_{false};

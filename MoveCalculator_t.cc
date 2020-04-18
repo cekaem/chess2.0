@@ -137,13 +137,65 @@ TEST_PROCEDURE(MoveCalculator_bishop_moves) {
   TEST_END
 }
 
+TEST_PROCEDURE(MoveCalculator_rook_moves) {
+  TEST_START
+  Board board("8/8/5K2/8/3p4/8/1N1r2k1/8 b - - 5 1");
+  MoveCalculator calculator(board);
+  auto moves = calculator.calculateAllMoves();
+  VERIFY_TRUE(MovesContainMove(moves, "8/8/5K2/8/3p4/3r4/1N4k1/8 w - - 6 2"));
+  VERIFY_TRUE(MovesContainMove(moves, "8/8/5K2/8/3p4/8/1Nr3k1/8 w - - 6 2"));
+  VERIFY_TRUE(MovesContainMove(moves, "8/8/5K2/8/3p4/8/1N4k1/3r4 w - - 6 2"));
+  VERIFY_TRUE(MovesContainMove(moves, "8/8/5K2/8/3p4/8/1N2r1k1/8 w - - 6 2"));
+  VERIFY_TRUE(MovesContainMove(moves, "8/8/5K2/8/3p4/8/1N3rk1/8 w - - 6 2"));
+  VERIFY_TRUE(MovesContainMove(moves, "8/8/5K2/8/3p4/8/1r4k1/8 w - - 0 2"));
+  VERIFY_EQUALS(moves.size(), 15ul);
+  TEST_END
+}
+
+TEST_PROCEDURE(MoveCalculator_knight_moves) {
+  TEST_START
+  {
+    Board board("8/8/1k6/5n2/2K5/8/8/8 b - - 0 1");
+    MoveCalculator calculator(board);
+    auto moves = calculator.calculateAllMoves();
+    VERIFY_TRUE(MovesContainMove(moves, "8/8/1k6/8/2K5/6n1/8/8 w - - 1 2"));
+    VERIFY_TRUE(MovesContainMove(moves, "8/8/1k6/8/2K5/4n3/8/8 w - - 1 2"));
+    VERIFY_TRUE(MovesContainMove(moves, "8/8/1k6/8/2Kn4/8/8/8 w - - 1 2"));
+    VERIFY_TRUE(MovesContainMove(moves, "8/8/1k1n4/8/2K5/8/8/8 w - - 1 2"));
+    VERIFY_TRUE(MovesContainMove(moves, "8/4n3/1k6/8/2K5/8/8/8 w - - 1 2"));
+    VERIFY_TRUE(MovesContainMove(moves, "8/6n1/1k6/8/2K5/8/8/8 w - - 1 2"));
+    VERIFY_TRUE(MovesContainMove(moves, "8/8/1k5n/8/2K5/8/8/8 w - - 1 2"));
+    VERIFY_TRUE(MovesContainMove(moves, "8/8/1k6/8/2K4n/8/8/8 w - - 1 2"));
+    VERIFY_EQUALS(moves.size(), 14ul);
+  }
+  {
+    Board board("8/8/1k6/8/b1K5/8/1N6/8 w - - 0 1");
+    MoveCalculator calculator(board);
+    auto moves = calculator.calculateAllMoves();
+    VERIFY_TRUE(MovesContainMove(moves, "8/8/1k6/8/b1K5/8/8/3N4 b - - 1 1"));
+    VERIFY_TRUE(MovesContainMove(moves, "8/8/1k6/8/b1K5/3N4/8/8 b - - 1 1"));
+    VERIFY_TRUE(MovesContainMove(moves, "8/8/1k6/8/N1K5/8/8/8 b - - 0 1"));
+    VERIFY_EQUALS(moves.size(), 8ul);
+  }
+  TEST_END
+}
+
 TEST_PROCEDURE(MoveCalculator_figure_does_not_unveil_its_king) {
   TEST_START
-  Board board("8/3k4/5b2/4P3/3K4/8/8/8 w - - 0 1");
-  MoveCalculator calculator(board);
-  std::vector<Board> moves = calculator.calculateAllMoves();
-  VERIFY_FALSE(MovesContainMove(moves, "8/3k4/4Pb2/8/3K4/8/8/8 b - - 0 1"));
-  VERIFY_EQUALS(moves.size(), 8ul);
+  {
+    Board board("8/3k4/5b2/4P3/3K4/8/8/8 w - - 0 1");
+    MoveCalculator calculator(board);
+    std::vector<Board> moves = calculator.calculateAllMoves();
+    VERIFY_FALSE(MovesContainMove(moves, "8/3k4/4Pb2/8/3K4/8/8/8 b - - 0 1"));
+    VERIFY_EQUALS(moves.size(), 8ul);
+  }
+  {
+    Board board("8/8/8/8/8/7k/8/5rQK w - - 0 1");
+    MoveCalculator calculator(board);
+    std::vector<Board> moves = calculator.calculateAllMoves();
+    VERIFY_TRUE(MovesContainMove(moves, "8/8/8/8/8/7k/8/5Q1K b - - 0 1"));
+    VERIFY_EQUALS(moves.size(), 1ul);
+  }
   TEST_END
 }
 
@@ -153,6 +205,16 @@ TEST_PROCEDURE(King_does_not_walk_into_check) {
   MoveCalculator calculator(board);
   std::vector<Board> moves = calculator.calculateAllMoves();
   VERIFY_TRUE(MovesContainMove(moves, "8/7k/4BK2/8/8/8/8/8 w - - 1 2"));
+  VERIFY_EQUALS(moves.size(), 1lu);
+  TEST_END
+}
+
+TEST_PROCEDURE(Removing_check) {
+  TEST_START
+  Board board("8/8/8/8/4b3/1n5k/NQ6/K7 w - - 0 1");
+  MoveCalculator calculator(board);
+  std::vector<Board> moves = calculator.calculateAllMoves();
+  VERIFY_TRUE(MovesContainMove(moves, "8/8/8/8/4b3/1Q5k/N7/K7 b - - 0 1"));
   VERIFY_EQUALS(moves.size(), 1lu);
   TEST_END
 }

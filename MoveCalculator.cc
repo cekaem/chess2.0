@@ -14,6 +14,10 @@ bool isKing(const char figure) {
   return figure == 'k' || figure == 'K';
 }
 
+bool isFinalRank(size_t row) {
+  return row == 0 || row == Board::kBoardSize - 1;
+}
+
 }  // unnamed namespace
 
 
@@ -87,14 +91,14 @@ bool MoveCalculator::handlePossibleMove(size_t old_line, size_t old_row,
   return board_[new_line][new_row] == 0x0;
 }
 
-void MoveCalculator::handleMove(Board& board, bool is_check) {
+void MoveCalculator::handleMove(Board& board, bool is_king_capture) {
   if (look_for_check_) {
-    if (is_check) {
+    if (is_king_capture) {
       throw KingInCheckException();
     }
     return;
   }
-  if (is_check) {
+  if (is_king_capture) {
     throw InvalidPositionException("Moving side checks the opponent's king");
   }
 
@@ -122,51 +126,78 @@ void MoveCalculator::calculateMovesForPawn(size_t line, size_t row) {
 
   char examined_square = board_[line][forward_row];
   if (examined_square == 0x0) {
-    if (forward_row == 0 || forward_row == Board::kBoardSize - 1) {
-      // TODO: promotion
+    Board board = board_;
+    board[line][row] = 0x0;
+    board[line][forward_row] = board_[line][row];
+    board.resetNumberOfHalfMoves();
+    if (isFinalRank(forward_row)) {
+      handlePawnPromotion(board, line, forward_row);
     } else {
-      Board board = board_;
-      board[line][row] = 0x0;
-      board[line][forward_row] = board_[line][row];
-      board.resetNumberOfHalfMoves();
       handleMove(board, false);
     }
   }
 
-  if (isSquareOnBoard(line - 1, forward_row)) {
-    examined_square = board_[line - 1][forward_row];
-    if (examined_square && isWhite(line - 1, forward_row) != is_white) {
-      if (forward_row == 0 || forward_row == Board::kBoardSize - 1) {
-        // TODO: promotion
-      } else {
-        Board board = board_;
-        board[line][row] = 0x0;
-        board[line - 1][forward_row] = board_[line][row];
-        board.resetNumberOfHalfMoves();
-        handleMove(board, isKing(board_[line - 1][forward_row]));
-      }
-    }
-  }
-
-  if (isSquareOnBoard(line + 1, forward_row)) {
-    examined_square = board_[line + 1][forward_row];
-    if (examined_square && isWhite(line + 1, forward_row) != is_white) {
-      if (forward_row == 0 || forward_row == Board::kBoardSize - 1) {
-        // TODO: promotion
-      } else {
-        Board board = board_;
-        board[line][row] = 0x0;
-        board[line + 1][forward_row] = board_[line][row];
-        board.resetNumberOfHalfMoves();
-        handleMove(board, isKing(board_[line + 1][forward_row]));
-      }
-    }
-  }
+  handlePossiblePawnsCapture(line, row);
 
   // TODO: en passant
 }
 
+void MoveCalculator::handlePossiblePawnsCapture(size_t line, size_t row) {
+  assert(board_[line][row] == 'p' || board_[line][row] == 'P');
+  auto helper = [this, line, row](int shift) {
+    bool is_white = isWhite(line, row);
+    size_t forward_row = is_white ? row + 1 : row - 1;
+    if (isSquareOnBoard(line + shift, forward_row)) {
+      if (board_[line + shift][forward_row] &&
+          isWhite(line + shift, forward_row) != is_white) {
+        Board board = board_;
+        board[line][row] = 0x0;
+        board[line + shift][forward_row] = board_[line][row];
+        board.resetNumberOfHalfMoves();
+        bool is_king_capture = isKing(board_[line + shift][forward_row]);
+        if (!is_king_capture && isFinalRank(forward_row)) {
+          handlePawnPromotion(board, line, forward_row);
+        } else {
+          handleMove(board, is_king_capture);
+        }
+      }
+    }
+  };
+  helper(1);
+  helper(-1);
+}
+
+void MoveCalculator::handlePawnPromotion(const Board& board, size_t line, size_t row) {
+  assert(board[line][row] == 'p' || board[line][row] == 'P');
+  assert(isFinalRank(row));
+  auto helper = [this, board, line, row](char figure) {
+    Board copy = board;
+    copy[line][row] = figure;
+    handleMove(copy, false);
+  };
+
+  if (board[line][row] == 'P') {
+    helper('Q');
+    helper('R');
+    helper('B');
+    helper('N');
+  } else {
+    helper('q');
+    helper('r');
+    helper('b');
+    helper('n');
+  }
+}
+
 void MoveCalculator::calculateMovesForKnight(size_t line, size_t row) {
+  handlePossibleMove(line, row, line + 1, row + 2);
+  handlePossibleMove(line, row, line - 1, row + 2);
+  handlePossibleMove(line, row, line + 2, row + 1);
+  handlePossibleMove(line, row, line + 2, row - 1);
+  handlePossibleMove(line, row, line + 1, row - 2);
+  handlePossibleMove(line, row, line - 1, row - 2);
+  handlePossibleMove(line, row, line - 2, row + 1);
+  handlePossibleMove(line, row, line - 2, row - 1);
 }
 
 void MoveCalculator::calculateMovesForBishop(size_t line, size_t row) {
@@ -185,10 +216,25 @@ void MoveCalculator::calculateMovesForBishop(size_t line, size_t row) {
 }
 
 void MoveCalculator::calculateMovesForRook(size_t line, size_t row) {
+  for (int offset = 1;
+       handlePossibleMove(line, row, line + offset, row);
+       ++offset);
+  for (int offset = 1;
+       handlePossibleMove(line, row, line - offset, row);
+       ++offset);
+  for (int offset = 1;
+       handlePossibleMove(line, row, line, row + offset);
+       ++offset);
+  for (int offset = 1;
+       handlePossibleMove(line, row, line, row - offset);
+       ++offset);
 }
 
 void MoveCalculator::calculateMovesForQueen(size_t line, size_t row) {
+  calculateMovesForRook(line, row);
+  calculateMovesForBishop(line, row);
 }
+
 void MoveCalculator::calculateMovesForKing(size_t line, size_t row) {
   handlePossibleMove(line, row, line + 1, row + 1);
   handlePossibleMove(line, row, line + 1, row);

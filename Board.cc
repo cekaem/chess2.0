@@ -225,8 +225,14 @@ bool Board::operator==(const std::string& fen) const {
 }
 
 Board::IndexHelper& Board::operator[](size_t index) {
-  index_helper.row = &squares_[index];
-  return index_helper;
+  index_helper_.row = &squares_[index];
+  return index_helper_;
+}
+
+const Board::IndexHelper& Board::operator[](size_t index) const {
+  index_helper_.row = const_cast<std::array<char, kBoardSize>*>(
+      &squares_[index]);
+  return index_helper_;
 }
 
 char Board::getSquare(const std::string& square) const {

@@ -29,13 +29,19 @@ class Board {
       return (*row)[index];
     }
 
-    std::array<char, kBoardSize>* row = nullptr;
-  } index_helper;
+    const char& operator[](size_t index) const {
+      return (*row)[index];
+    }
+
+    mutable std::array<char, kBoardSize>* row = nullptr;
+  } index_helper_;
 
   Board(const std::string& fen);
 
   IndexHelper& operator[](size_t index);
+  const IndexHelper& operator[](size_t index) const;
   char getSquare(const std::string& square) const;
+
   bool canCastle(Castling castling) const;
   std::string createFEN() const;
 
