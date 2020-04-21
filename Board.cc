@@ -2,7 +2,7 @@
 
 #include "utils/Utils.h"
 
-Square Square::InvalidSquare = {-1, -1};
+Square Square::InvalidSquare = {0, 0};
 
 std::ostream& operator<<(std::ostream& ostr, const Board& move) {
   ostr << move.createFEN();
@@ -128,7 +128,7 @@ void Board::setMiscDataFromFEN(std::string partial_fen) {
     if (Square::isValid(en_passant_square) == false) {
       throw InvalidFENException(partial_fen);
     }
-    en_passant_target_square_ = {en_passant_square[0], en_passant_square[1]};
+    en_passant_target_square_ = en_passant_square;
   }
 
   partial_fen = partial_fen.substr(space_position);
@@ -247,7 +247,16 @@ char Board::getSquare(const std::string& square) const {
   return squares_[line][row];
 }
 
+void Board::resetCastlings(bool for_white) {
+  if (for_white) {
+    resetCastling(Castling::Q);
+    resetCastling(Castling::K);
+  } else {
+    resetCastling(Castling::q);
+    resetCastling(Castling::k);
+  }
+}
+
 bool Board::canCastle(Castling castling) const {
   return (castlings_ & (1 << static_cast<size_t>(castling))) != 0 ;
-
 }

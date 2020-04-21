@@ -1,19 +1,9 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <cassert>
 #include <string>
 
-/*
-enum class Figure {
-  None,
-  Pawn,
-  Knight,
-  Bishop,
-  Rook,
-  Queen,
-  King
-};
-*/
 
 enum class Castling {
   K,
@@ -32,15 +22,32 @@ struct Square {
     return field.size() == 2u && field[0] >= 'a' && field[0] <= 'h' &&
            field[1] >= '0' && field[1] <= '8';
   }
+
+  Square(size_t line, size_t row) {
+    letter = line + 'a';
+    number = row + '1';
+  }
+
+  Square(const std::string& square) {
+    assert(square.length() == 2);
+    letter = square[0];
+    number = square[1];
+  }
+
   bool operator==(const Square& other) const {
     return letter == other.letter && number == other.number;
+  }
+
+  operator bool() const {
+    return letter != InvalidSquare.letter ||
+           number != InvalidSquare.number;
   }
 };
 
 struct Move {
   const Square oldSquare;
   const Square newSquare;
-  // TODO: implement all required fields (castling, en-passant, ...)
+  char castling;
 };
 
 #endif  // TYPES_H

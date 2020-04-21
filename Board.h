@@ -67,6 +67,20 @@ class Board {
 
   bool operator==(const std::string& fen) const;
 
+  Square getEnPassantTargetSquare() const {
+    return en_passant_target_square_;
+  }
+
+  void setEnPassantTargetSquare(Square square) {
+    en_passant_target_square_ = square;
+  }
+
+  void resetCastling(Castling castling) {
+    castlings_ &= ~(1 << static_cast<int>(castling));
+  }
+
+  void resetCastlings(bool for_white);
+
  private:
   void setFiguresFromFEN(std::string partial_fen);
   void setFiguresForOneLineFromFEN(const std::string& one_line, size_t line);
