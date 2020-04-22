@@ -44,10 +44,4 @@ struct Square {
   }
 };
 
-struct Move {
-  const Square oldSquare;
-  const Square newSquare;
-  char castling;
-};
-
 #endif  // TYPES_H

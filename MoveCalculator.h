@@ -1,10 +1,33 @@
 #ifndef MOVE_CALCULATOR_H
 #define MOVE_CALCULATOR_H
 
+#include <ostream>
 #include <string>
 #include <vector>
 
 #include "Board.h"
+
+struct Move {
+  Move(const Board& b,
+       size_t old_line,
+       size_t old_row,
+       size_t new_line,
+       size_t new_row)
+    : board(b),
+      old_square{old_line, old_row},
+      new_square{new_line, new_row} {
+  }
+
+  Board board;
+  const Square old_square;
+  const Square new_square;
+  Castling castling{Castling::LAST};
+  bool capture{false};
+  char promotion{0x0};
+
+};
+
+std::ostream& operator<<(std::ostream& ostr, const Move& move);
 
 class MoveCalculator {
  public:
@@ -18,7 +41,7 @@ class MoveCalculator {
         look_for_king_capture_(look_for_king_capture) {
   }
 
-  std::vector<Board> calculateAllMoves();
+  std::vector<Move> calculateAllMoves();
 
  private:
   struct KingInCheckException {};
@@ -34,15 +57,15 @@ class MoveCalculator {
 
   bool handlePossibleMove(size_t old_line, size_t old_row,
                           size_t new_line, size_t new_row);
-  void handleMove(Board& board, bool is_king_capture);
+  void handleMove(Move& board, bool is_king_capture);
   void handlePossiblePawnsCapture(size_t line, size_t row);
-  void handlePawnPromotion(const Board& board, size_t line, size_t row);
+  void handlePawnPromotion(const Move& move, size_t line, size_t row);
   void handlePossibleCastlings(size_t line, size_t row);
   void resetCastlings(Board& board, char figure, size_t line, size_t row) const;
 
   const Board board_;
   const bool look_for_king_capture_{false};
-  std::vector<Board> moves_;
+  std::vector<Move> moves_;
 };
 
 #endif  // MOVE_CALCULATOR_H
