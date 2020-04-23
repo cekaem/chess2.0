@@ -70,44 +70,53 @@ std::ostream& operator<<(std::ostream& ostr, const Move& move) {
       break;
   }
   ostr << std::endl;
+  ostr << "check/mate/stalemate: " << move.check << "/" << move.mate << "/" << move.stalemate << std::endl;
   return ostr;
 }
 
-std::vector<Move> MoveCalculator::calculateAllMoves() {
-  for (size_t i = 0; i < Board::kBoardSize; ++i) {
-    for (size_t j = 0; j < Board::kBoardSize; ++j) {
-      char square = board_[i][j];
-      if (square == 0x0 || board_.whiteToMove() != isWhite(square)) {
-        continue;
-      }
-      switch (square) {
-        case 'p':
-        case 'P':
-          calculateMovesForPawn(i, j);
-          break;
-        case 'n':
-        case 'N':
-          calculateMovesForKnight(i, j);
-          break;
-        case 'b':
-        case 'B':
-          calculateMovesForBishop(i, j);
-          break;
-        case 'r':
-        case 'R':
-          calculateMovesForRook(i, j);
-          break;
-        case 'q':
-        case 'Q':
-          calculateMovesForQueen(i, j);
-          break;
-        case 'k':
-        case 'K':
-          calculateMovesForKing(i, j);
-          break;
+void MoveCalculator::calculateAllMovesForFigure(size_t line, size_t row) {
+  switch (board_[line][row]) {
+    case 'p':
+    case 'P':
+      calculateMovesForPawn(line, row);
+      break;
+    case 'n':
+    case 'N':
+      calculateMovesForKnight(line, row);
+      break;
+    case 'b':
+    case 'B':
+      calculateMovesForBishop(line, row);
+      break;
+    case 'r':
+    case 'R':
+      calculateMovesForRook(line, row);
+      break;
+    case 'q':
+    case 'Q':
+      calculateMovesForQueen(line, row);
+      break;
+    case 'k':
+    case 'K':
+      calculateMovesForKing(line, row);
+      break;
+  }
+}
+
+void MoveCalculator::calculateAllMovesInternal() {
+  for (size_t line = 0; line < Board::kBoardSize; ++line) {
+    for (size_t row = 0; row < Board::kBoardSize; ++row) {
+      char square = board_[line][row];
+      if (board_[line][row] && board_.whiteToMove() == isWhite(square)) {
+        calculateAllMovesForFigure(line, row);
       }
     }
   }
+}
+
+std::vector<Move> MoveCalculator::calculateAllMoves() {
+  calculateAllMovesInternal();
+  updateCheckAndCheckMateForAllMoves();
   return moves_;
 }
 
@@ -182,13 +191,39 @@ void MoveCalculator::handleMove(Move& move, bool is_king_capture) {
   move.board.changeSideToMove();
   try {
     MoveCalculator calculator(move.board, true);
-    calculator.calculateAllMoves();
+    calculator.calculateAllMovesInternal();
     // Exception KingInCheckException was not thrown so move is valid.
     if (move.board.whiteToMove()) {
       move.board.incrementNumberOfMoves();
     }
     moves_.push_back(move);
   } catch (KingInCheckException& e) {
+  }
+}
+
+void MoveCalculator::updateCheckAndCheckMateForAllMoves() {
+  for (Move& move: moves_) {
+    updateCheckAndCheckMateForMove(move);
+  }
+}
+
+void MoveCalculator::updateCheckAndCheckMateForMove(Move& move) const {
+  move.board.changeSideToMove();
+  try {
+    MoveCalculator calculator(move.board, true);
+    calculator.calculateAllMoves();
+  } catch (KingInCheckException& e) {
+    move.check = true;
+  }
+  move.board.changeSideToMove();
+  MoveCalculator calculator(move.board);
+  calculator.calculateAllMovesInternal();
+  if (calculator.moves_.size() == 0) {
+    if (move.check) {
+      move.mate = true;
+    } else {
+      move.stalemate = true;
+    }
   }
 }
 

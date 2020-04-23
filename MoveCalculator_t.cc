@@ -25,13 +25,19 @@ bool MovesContainMove(const std::vector<Move>& moves,
                       const char* new_square,
                       Castling castling,
                       bool capture,
-                      char promotion) {
+                      char promotion,
+                      bool check,
+                      bool mate,
+                      bool stalemate) {
   for (const auto& move: moves) {
     if (move.old_square == Square(old_square) &&
         move.new_square == Square(new_square) &&
         move.castling == castling &&
         move.capture == capture &&
-        move.promotion == promotion) {
+        move.promotion == promotion &&
+        move.check == check &&
+        move.mate == mate &&
+        move.stalemate == stalemate) {
       return true;
     }
   }
@@ -254,28 +260,61 @@ TEST_START
     Board board("8/8/8/8/8/7k/7p/6BK b - - 0 1");
     MoveCalculator calculator(board);
     std::vector<Move> moves = calculator.calculateAllMoves();
-    VERIFY_TRUE(MovesContainMove(moves, "h2", "g1", Castling::LAST, true, 'q'));
-    VERIFY_TRUE(MovesContainMove(moves, "h2", "g1", Castling::LAST, true, 'r'));
-    VERIFY_TRUE(MovesContainMove(moves, "h2", "g1", Castling::LAST, true, 'b'));
-    VERIFY_TRUE(MovesContainMove(moves, "h2", "g1", Castling::LAST, true, 'n'));
+    VERIFY_TRUE(MovesContainMove(moves, "h2", "g1", Castling::LAST, true, 'q', true, false, false));
+    VERIFY_TRUE(MovesContainMove(moves, "h2", "g1", Castling::LAST, true, 'r', true, false, false));
+    VERIFY_TRUE(MovesContainMove(moves, "h2", "g1", Castling::LAST, true, 'b', false, false, false));
+    VERIFY_TRUE(MovesContainMove(moves, "h2", "g1", Castling::LAST, true, 'n', false, false, false));
   }
   {
     Board board("4k3/8/8/8/1Pp5/8/8/4K3 b - b3 0 1");
     MoveCalculator calculator(board);
     std::vector<Move> moves = calculator.calculateAllMoves();
-    VERIFY_TRUE(MovesContainMove(moves, "c4", "b3", Castling::LAST, true, 0x0));
+    VERIFY_TRUE(MovesContainMove(moves, "c4", "b3", Castling::LAST, true, 0x0, false, false, false));
   }
   {
     Board board("r3k3/8/8/8/8/8/8/4K2R w KQkq - 0 1");
     MoveCalculator calculator(board);
     std::vector<Move> moves = calculator.calculateAllMoves();
-    VERIFY_TRUE(MovesContainMove(moves, "e1", "g1", Castling::K, false, 0x0));
+    VERIFY_TRUE(MovesContainMove(moves, "e1", "g1", Castling::K, false, 0x0, false, false, false));
   }
   {
     Board board("r3k3/8/8/8/8/8/8/4K2R b KQkq - 0 1");
     MoveCalculator calculator(board);
     std::vector<Move> moves = calculator.calculateAllMoves();
-    VERIFY_TRUE(MovesContainMove(moves, "e8", "c8", Castling::q, false, 0x0));
+    VERIFY_TRUE(MovesContainMove(moves, "e8", "c8", Castling::q, false, 0x0, false, false, false));
+  }
+  {
+    Board board("8/8/6k1/8/8/5K2/6N1/8 w - - 0 1");
+    MoveCalculator calculator(board);
+    std::vector<Move> moves = calculator.calculateAllMoves();
+    VERIFY_TRUE(MovesContainMove(moves, "g2", "f4", Castling::LAST, false, 0x0, true, false, false));
+    VERIFY_TRUE(MovesContainMove(moves, "g2", "h4", Castling::LAST, false, 0x0, true, false, false));
+    VERIFY_TRUE(MovesContainMove(moves, "g2", "e1", Castling::LAST, false, 0x0, false, false, false));
+    VERIFY_TRUE(MovesContainMove(moves, "g2", "e3", Castling::LAST, false, 0x0, false, false, false));
+  }
+  {
+    Board board("8/8/8/3b4/1k2b3/8/2p5/K7 b - - 0 1");
+    MoveCalculator calculator(board);
+    std::vector<Move> moves = calculator.calculateAllMoves();
+    VERIFY_TRUE(MovesContainMove(moves, "c2", "c1", Castling::LAST, false, 'q', true, true, false));
+    VERIFY_TRUE(MovesContainMove(moves, "c2", "c1", Castling::LAST, false, 'r', true, false, false));
+    VERIFY_TRUE(MovesContainMove(moves, "c2", "c1", Castling::LAST, false, 'n', false, false, false));
+    VERIFY_TRUE(MovesContainMove(moves, "c2", "c1", Castling::LAST, false, 'b', false, false, true));
+  }
+  {
+    Board board("5k2/8/8/8/8/8/8/4K2R w K - 0 1");
+    MoveCalculator calculator(board);
+    std::vector<Move> moves = calculator.calculateAllMoves();
+    VERIFY_TRUE(MovesContainMove(moves, "e1", "g1", Castling::K, false, 0x0, true, false, false));
+  }
+  {
+    Board board("3k1n2/6P1/5K2/7B/8/8/8/2R5 w K - 0 1");
+    MoveCalculator calculator(board);
+    std::vector<Move> moves = calculator.calculateAllMoves();
+    VERIFY_TRUE(MovesContainMove(moves, "g7", "f8", Castling::LAST, true, 'N', false, false, true));
+    VERIFY_TRUE(MovesContainMove(moves, "g7", "f8", Castling::LAST, true, 'Q', true, false, false));
+    VERIFY_TRUE(MovesContainMove(moves, "g7", "f8", Castling::LAST, true, 'R', true, false, false));
+    VERIFY_TRUE(MovesContainMove(moves, "g7", "f8", Castling::LAST, true, 'B', false, false, false));
   }
 TEST_END
 }

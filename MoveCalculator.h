@@ -24,6 +24,9 @@ struct Move {
   Castling castling{Castling::LAST};
   bool capture{false};
   char promotion{0x0};
+  bool check{false};
+  bool mate{false};
+  bool stalemate{false};
 
 };
 
@@ -48,6 +51,8 @@ class MoveCalculator {
 
   bool isValidMove(size_t old_line, size_t old_row,
                    size_t new_line, size_t new_row);
+  void calculateAllMovesInternal();
+  void calculateAllMovesForFigure(size_t line, size_t row);
   void calculateMovesForPawn(size_t line, size_t row);
   void calculateMovesForKnight(size_t line, size_t row);
   void calculateMovesForBishop(size_t line, size_t row);
@@ -62,8 +67,10 @@ class MoveCalculator {
   void handlePawnPromotion(const Move& move, size_t line, size_t row);
   void handlePossibleCastlings(size_t line, size_t row);
   void resetCastlings(Board& board, char figure, size_t line, size_t row) const;
+  void updateCheckAndCheckMateForAllMoves();
+  void updateCheckAndCheckMateForMove(Move& move) const;
 
-  const Board board_;
+  const Board& board_;
   const bool look_for_king_capture_{false};
   std::vector<Move> moves_;
 };
