@@ -388,4 +388,13 @@ TEST_START
 TEST_END
 }
 
+TEST_PROCEDURE(InitialBoard) {
+TEST_START
+  Board board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+  MoveCalculator calculator(board);
+  std::vector<Move> moves = calculator.calculateAllMoves();
+  VERIFY_EQUALS(moves.size(), 20lu);
+TEST_END
+}
+
 } // unnamed namespace

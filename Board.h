@@ -24,22 +24,16 @@ class Board {
     const std::string square;
   };
 
-  struct IndexHelper {
-    char& operator[](size_t index) {
-      return (*row)[index];
-    }
-
-    const char& operator[](size_t index) const {
-      return (*row)[index];
-    }
-
-    mutable std::array<char, kBoardSize>* row = nullptr;
-  } index_helper_;
-
   Board(const std::string& fen);
 
-  IndexHelper& operator[](size_t index);
-  const IndexHelper& operator[](size_t index) const;
+  char& at(size_t line, size_t row) {
+    return squares_[line][row];
+  }
+
+  const char& at(size_t line, size_t row) const {
+    return squares_[line][row];
+  }
+
   char getSquare(const std::string& square) const;
 
   bool canCastle(Castling castling) const;

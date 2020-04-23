@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include <iostream>
 
 namespace {
 
@@ -24,7 +25,7 @@ bool isWhite(char figure) {
 }
 
 bool isStartingRow(char figure, size_t row) {
-  return (figure == 'P' && row == 2) ||
+  return (figure == 'P' && row == 1) ||
          (figure == 'p' && row == Board::kBoardSize - 2);
 }
 
@@ -75,7 +76,7 @@ std::ostream& operator<<(std::ostream& ostr, const Move& move) {
 }
 
 void MoveCalculator::calculateAllMovesForFigure(size_t line, size_t row) {
-  switch (board_[line][row]) {
+  switch (board_.at(line, row)) {
     case 'p':
     case 'P':
       calculateMovesForPawn(line, row);
@@ -106,8 +107,8 @@ void MoveCalculator::calculateAllMovesForFigure(size_t line, size_t row) {
 void MoveCalculator::calculateAllMovesInternal() {
   for (size_t line = 0; line < Board::kBoardSize; ++line) {
     for (size_t row = 0; row < Board::kBoardSize; ++row) {
-      char square = board_[line][row];
-      if (board_[line][row] && board_.whiteToMove() == isWhite(square)) {
+      char square = board_.at(line, row);
+      if (board_.at(line, row) && board_.whiteToMove() == isWhite(square)) {
         calculateAllMovesForFigure(line, row);
       }
     }
@@ -122,10 +123,10 @@ std::vector<Move> MoveCalculator::calculateAllMoves() {
 
 bool MoveCalculator::isValidMove(size_t old_line, size_t old_row,
                                  size_t new_line, size_t new_row) {
-  if (board_[new_line][new_row] == 0x0) {
+  if (board_.at(new_line, new_row) == 0x0) {
     return true;
   }
-  return isWhite(board_[old_line][old_row]) != isWhite(board_[new_line][new_row]);
+  return isWhite(board_.at(old_line, old_row)) != isWhite(board_.at(new_line, new_row));
 }
 
 void MoveCalculator::resetCastlings(Board& board, char figure, size_t line, size_t row) const {
@@ -162,19 +163,19 @@ bool MoveCalculator::handlePossibleMove(size_t old_line, size_t old_row,
     return false;
   }
   Move move(board_, old_line, old_row, new_line, new_row);
-  move.capture = board_[new_line][new_row] != 0x0;
-  char new_square = board_[new_line][new_row];
+  move.capture = board_.at(new_line, new_row) != 0x0;
+  char new_square = board_.at(new_line, new_row);
   if (new_square) {
     move.board.resetNumberOfHalfMoves();
   } else {
     move.board.incrementNumberOfHalfMoves();
   }
   move.board.setEnPassantTargetSquare(Square::InvalidSquare);
-  move.board[new_line][new_row] = move.board[old_line][old_row];
-  move.board[old_line][old_row] = 0x0;
-  resetCastlings(move.board, move.board[new_line][new_row], old_line, old_row);
+  move.board.at(new_line, new_row) = move.board.at(old_line, old_row);
+  move.board.at(old_line, old_row) = 0x0;
+  resetCastlings(move.board, move.board.at(new_line, new_row), old_line, old_row);
   handleMove(move, isKing(new_square));
-  return board_[new_line][new_row] == 0x0;
+  return board_.at(new_line, new_row) == 0x0;
 }
 
 void MoveCalculator::handleMove(Move& move, bool is_king_capture) {
@@ -208,6 +209,8 @@ void MoveCalculator::updateCheckAndCheckMateForAllMoves() {
 }
 
 void MoveCalculator::updateCheckAndCheckMateForMove(Move& move) const {
+  Square en_passant_square = move.board.getEnPassantTargetSquare();
+  move.board.setEnPassantTargetSquare(Square::InvalidSquare);
   move.board.changeSideToMove();
   try {
     MoveCalculator calculator(move.board, true);
@@ -215,6 +218,7 @@ void MoveCalculator::updateCheckAndCheckMateForMove(Move& move) const {
   } catch (KingInCheckException& e) {
     move.check = true;
   }
+  move.board.setEnPassantTargetSquare(en_passant_square);
   move.board.changeSideToMove();
   MoveCalculator calculator(move.board);
   calculator.calculateAllMovesInternal();
@@ -228,8 +232,13 @@ void MoveCalculator::updateCheckAndCheckMateForMove(Move& move) const {
 }
 
 void MoveCalculator::calculateMovesForPawn(size_t line, size_t row) {
-  assert(board_[line][row] == 'p' || board_[line][row] == 'P');
-  bool is_white = isWhite(board_[line][row]);
+  assert(board_.at(line, row) == 'p' || board_.at(line, row) == 'P');
+  handlePossiblePawnsCapture(line, row);
+  if (look_for_king_capture_) {
+    // Pawn move cannot beat king.
+    return;
+  }
+  bool is_white = isWhite(board_.at(line, row));
   int forward = is_white ? 1 : -1;
   size_t forward_row = row + forward;
   if (isSquareOnBoard(line, forward_row) == false) {
@@ -238,8 +247,8 @@ void MoveCalculator::calculateMovesForPawn(size_t line, size_t row) {
 
   auto helper = [this](size_t line, size_t old_row, size_t new_row, Square en_passant) {
     Move move(board_, line, old_row, line, new_row);
-    move.board[line][old_row] = 0x0;
-    move.board[line][new_row] = board_[line][old_row];
+    move.board.at(line, old_row) = 0x0;
+    move.board.at(line, new_row) = board_.at(line, old_row);
     move.board.resetNumberOfHalfMoves();
     move.board.setEnPassantTargetSquare(en_passant);
     if (isFinalRank(new_row)) {
@@ -249,44 +258,42 @@ void MoveCalculator::calculateMovesForPawn(size_t line, size_t row) {
     }
   };
 
-  char examined_square = board_[line][forward_row];
+  char examined_square = board_.at(line, forward_row);
   if (examined_square == 0x0) {
     helper(line, row, forward_row, Square::InvalidSquare);
-    if (isStartingRow(board_[line][row], row)) {
+    if (isStartingRow(board_.at(line, row), row)) {
       forward_row += forward;
-      examined_square = board_[line][forward_row];
+      examined_square = board_.at(line, forward_row);
       if (examined_square == 0x0) {
         Square en_passant(line, row + forward);
         helper(line, row, forward_row, en_passant);
       }
     }
   }
-
-  handlePossiblePawnsCapture(line, row);
 }
 
 void MoveCalculator::handlePossiblePawnsCapture(size_t line, size_t row) {
-  assert(board_[line][row] == 'p' || board_[line][row] == 'P');
+  assert(board_.at(line, row) == 'p' || board_.at(line, row) == 'P');
   auto helper = [this, line, row](int shift) {
-    bool is_white = isWhite(board_[line][row]);
+    bool is_white = isWhite(board_.at(line, row));
     size_t forward_row = is_white ? row + 1 : row - 1;
     if (isSquareOnBoard(line + shift, forward_row)) {
       Square en_passant_square = board_.getEnPassantTargetSquare();
       bool is_en_passant_capture = Square(line + shift, forward_row) == en_passant_square;
       if (is_en_passant_capture ||
-          (board_[line + shift][forward_row] &&
-           isWhite(board_[line + shift][forward_row]) != is_white)) {
+          (board_.at(line + shift, forward_row) &&
+           isWhite(board_.at(line + shift, forward_row)) != is_white)) {
         Move move(board_, line, row, line + shift, forward_row);
         move.capture = true;
-        move.board[line][row] = 0x0;
-        move.board[line + shift][forward_row] = board_[line][row];
+        move.board.at(line, row) = 0x0;
+        move.board.at(line + shift, forward_row) = board_.at(line, row);
         move.board.resetNumberOfHalfMoves();
         move.board.setEnPassantTargetSquare(Square::InvalidSquare);
-        bool is_king_capture = isKing(board_[line + shift][forward_row]);
+        bool is_king_capture = isKing(board_.at(line + shift, forward_row));
         if (is_en_passant_capture) {
-          assert(move.board[line + shift][row] == 'P' ||
-                 move.board[line + shift][row] == 'p');
-          move.board[line + shift][row] = 0x0;
+          assert(move.board.at(line + shift, row) == 'P' ||
+                 move.board.at(line + shift, row) == 'p');
+          move.board.at(line + shift, row) = 0x0;
         }
         if (!is_king_capture && isFinalRank(forward_row)) {
           handlePawnPromotion(move, line + shift, forward_row);
@@ -301,16 +308,16 @@ void MoveCalculator::handlePossiblePawnsCapture(size_t line, size_t row) {
 }
 
 void MoveCalculator::handlePawnPromotion(const Move& move, size_t line, size_t row) {
-  assert(move.board[line][row] == 'p' || move.board[line][row] == 'P');
+  assert(move.board.at(line, row) == 'p' || move.board.at(line, row) == 'P');
   assert(isFinalRank(row));
   auto helper = [this, &move, line, row](char figure) {
     Move copy = move;
-    copy.board[line][row] = figure;
+    copy.board.at(line, row) = figure;
     copy.promotion = figure;
     handleMove(copy, false);
   };
 
-  if (move.board[line][row] == 'P') {
+  if (move.board.at(line, row) == 'P') {
     helper('Q');
     helper('R');
     helper('B');
@@ -384,7 +391,7 @@ void MoveCalculator::calculateMovesForKing(size_t line, size_t row) {
 }
 
 void MoveCalculator::handlePossibleCastlings(size_t line, size_t row) {
-  const bool is_white = isWhite(board_[line][row]);
+  const bool is_white = isWhite(board_.at(line, row));
   const size_t king_starting_row = is_white ? 0 : Board::kBoardSize - 1;
 
   if (line != kKingStartingLine || row != king_starting_row) {
@@ -397,21 +404,21 @@ void MoveCalculator::handlePossibleCastlings(size_t line, size_t row) {
     }
     const char rook = is_white ? 'R' : 'r';
     const size_t rooks_line = king_side ? kKingSideRookStartingLine : kQueenSideRookStartingLine;
-    if (board_[rooks_line][row] != rook) {
+    if (board_.at(rooks_line, row) != rook) {
       return;
     }
     const int shift = king_side ? 1 : -1;
-    if (board_[kKingStartingLine + shift][row] || board_[kKingStartingLine + 2 * shift][row]) {
+    if (board_.at(kKingStartingLine + shift, row) || board_.at(kKingStartingLine + 2 * shift, row)) {
       return;
     }
 
     auto isMoveValid = [this, row](size_t new_line) -> bool {
       Board copy = board_;
       copy.changeSideToMove();
-      const char king = copy[kKingStartingLine][row];
+      const char king = copy.at(kKingStartingLine, row);
       assert (king == 'K' || king == 'k');
-      copy[kKingStartingLine][row] = 0x0;
-      copy[new_line][row] = king;
+      copy.at(kKingStartingLine, row) = 0x0;
+      copy.at(new_line, row) = king;
       MoveCalculator calculator(copy, true);
       try {
         calculator.calculateAllMoves();
@@ -433,11 +440,11 @@ void MoveCalculator::handlePossibleCastlings(size_t line, size_t row) {
     move.board.incrementNumberOfHalfMoves();
     move.board.setEnPassantTargetSquare(Square::InvalidSquare);
     move.board.resetCastlings(is_white);
-    const char king = move.board[kKingStartingLine][row];
-    move.board[kKingStartingLine][row] = 0x0;
-    move.board[rooks_line][row] = 0x0;
-    move.board[kKingStartingLine + 2 * shift][row] = king;
-    move.board[kKingStartingLine + shift][row] = rook;
+    const char king = move.board.at(kKingStartingLine, row);
+    move.board.at(kKingStartingLine, row) = 0x0;
+    move.board.at(rooks_line, row) = 0x0;
+    move.board.at(kKingStartingLine + 2 * shift, row) = king;
+    move.board.at(kKingStartingLine + shift, row) = rook;
     move.castling = castling;
     handleMove(move, false);
   };

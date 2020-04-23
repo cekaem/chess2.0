@@ -97,14 +97,14 @@ TEST_PROCEDURE(Board_getSquare_invalid_value) {
 TEST_PROCEDURE(Board_indexing) {
   TEST_START
   Board board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-  VERIFY_EQUALS(board[0][0], 'R');
-  VERIFY_EQUALS(board[0][1], 'P');
-  VERIFY_EQUALS(board[1][0], 'N');
-  VERIFY_FALSE(board[2][2]);
-  VERIFY_EQUALS(board[3][6], 'p');
-  VERIFY_EQUALS(board[7][7], 'r');
-  board[2][2] = 'q';
-  VERIFY_EQUALS(board[2][2], 'q');
+  VERIFY_EQUALS(board.at(0, 0), 'R');
+  VERIFY_EQUALS(board.at(0, 1), 'P');
+  VERIFY_EQUALS(board.at(1, 0), 'N');
+  VERIFY_FALSE(board.at(2, 2));
+  VERIFY_EQUALS(board.at(3, 6), 'p');
+  VERIFY_EQUALS(board.at(7, 7), 'r');
+  board.at(2, 2) = 'q';
+  VERIFY_EQUALS(board.at(2, 2), 'q');
   TEST_END
 }
 
