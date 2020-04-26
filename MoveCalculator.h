@@ -27,7 +27,7 @@ struct Move {
   bool check{false};
   bool mate{false};
   bool stalemate{false};
-
+  bool insufficient_material{false};
 };
 
 std::ostream& operator<<(std::ostream& ostr, const Move& move);
@@ -69,6 +69,7 @@ class MoveCalculator {
   void resetCastlings(Board& board, char figure, size_t line, size_t row) const;
   void updateCheckAndCheckMateForAllMoves();
   void updateCheckAndCheckMateForMove(Move& move) const;
+  void updateInsufficientMaterialForMove(Move& move) const;
 
   const Board& board_;
   const bool look_for_king_capture_{false};

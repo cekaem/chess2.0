@@ -44,6 +44,20 @@ bool MovesContainMove(const std::vector<Move>& moves,
   return false;
 }
 
+bool MovesContainMove(const std::vector<Move>& moves,
+                      const char* old_square,
+                      const char* new_square,
+                      bool insufficient_material) {
+  for (const auto& move: moves) {
+    if (move.old_square == Square(old_square) &&
+        move.new_square == Square(new_square) &&
+        move.insufficient_material == insufficient_material) {
+      return true;
+    }
+  }
+  return false;
+}
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
@@ -318,6 +332,54 @@ TEST_START
   }
 TEST_END
 }
+
+TEST_PROCEDURE(InsufficientMaterial) {
+TEST_START
+  {
+    Board board("8/8/8/5k2/8/6Kp/8/8 w - - 0 1");
+    MoveCalculator calculator(board);
+    std::vector<Move> moves = calculator.calculateAllMoves();
+    VERIFY_TRUE(MovesContainMove(moves, "g3", "f3", false));
+    VERIFY_TRUE(MovesContainMove(moves, "g3", "h3", true));
+  }
+  {
+    Board board("8/8/8/5K2/3B4/5Bk1/8/8 b - - 0 1");
+    MoveCalculator calculator(board);
+    std::vector<Move> moves = calculator.calculateAllMoves();
+    VERIFY_TRUE(MovesContainMove(moves, "g3", "f3", true));
+    VERIFY_TRUE(MovesContainMove(moves, "g3", "h2", false));
+  }
+  {
+    Board board("8/8/8/5k2/3b4/5nK1/8/8 w - - 0 1");
+    MoveCalculator calculator(board);
+    std::vector<Move> moves = calculator.calculateAllMoves();
+    VERIFY_TRUE(MovesContainMove(moves, "g3", "f3", true));
+    VERIFY_TRUE(MovesContainMove(moves, "g3", "h3", false));
+  }
+  {
+    Board board("8/8/1b6/5k2/8/5rK1/8/8 w - - 0 1");
+    MoveCalculator calculator(board);
+    std::vector<Move> moves = calculator.calculateAllMoves();
+    VERIFY_TRUE(MovesContainMove(moves, "g3", "f3", true));
+    VERIFY_TRUE(MovesContainMove(moves, "g3", "h2", false));
+  }
+  {
+    Board board("8/8/8/5K2/8/5Qk1/8/8 b - - 0 1");
+    MoveCalculator calculator(board);
+    std::vector<Move> moves = calculator.calculateAllMoves();
+    VERIFY_TRUE(MovesContainMove(moves, "g3", "f3", true));
+    VERIFY_TRUE(MovesContainMove(moves, "g3", "h2", false));
+  }
+  {
+    Board board("8/8/2Pk4/3n4/8/K7/6B1/4b3 b - - 0 154");
+    MoveCalculator calculator(board);
+    auto moves = calculator.calculateAllMoves();
+    VERIFY_FALSE(MovesContainMove(moves, "d6", "c6", true));
+
+  }
+TEST_END
+}
+
 
 TEST_PROCEDURE(Castlings) {
 TEST_START

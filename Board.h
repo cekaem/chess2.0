@@ -2,13 +2,25 @@
 #define BOARD_H
 
 #include <array>
-#include <ostream>
+#include <cassert>
+#include <iostream>
 #include <string>
 #include <sstream>
 #include <vector>
 
 #include "Types.h"
 
+
+#ifdef _BOARD_ASSERTS_ON_
+#define BoardAssert(_board_, _condition_)\
+  if ((_condition_) == false) {\
+    std::cerr << (_board_).createFEN() << std::endl;\
+    assert(_condition_);\
+  }
+#else
+#define NOOP
+#define BoardAssert(_board_, _condition_) NOOP
+#endif  // _BOARD_ASSERTS_ON_
 
 class Board {
  public:

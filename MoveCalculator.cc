@@ -1,8 +1,5 @@
 #include "MoveCalculator.h"
 
-#include <cassert>
-
-#include <iostream>
 
 namespace {
 
@@ -37,41 +34,33 @@ constexpr size_t kKingSideRookStartingLine = Board::kBoardSize - 1;
 
 
 std::ostream& operator<<(std::ostream& ostr, const Move& move) {
-  ostr << move.old_square.letter << move.old_square.number;
-  if (move.capture) {
-    ostr << "x";
-  } else {
-    ostr << "-";
-  }
-  ostr << move.new_square.letter << move.new_square.number;
-  ostr << std::endl;
-  ostr << "promotion: ";
-  if (move.promotion) {
-    ostr << move.promotion;
-  } else {
-    ostr << "-";
-  }
-  ostr << std::endl;
-  ostr << "castling: ";
   switch (move.castling) {
     case Castling::K:
-      ostr << 'K';
+    case Castling::k:
+      ostr << "0-0";
       break;
     case Castling::Q:
-      ostr << 'Q';
-      break;
-    case Castling::k:
-      ostr << 'k';
-      break;
     case Castling::q:
-      ostr << 'q';
+      ostr << "0-0-0";
       break;
     case Castling::LAST:
-      ostr << "-";
+      ostr << move.old_square.letter << move.old_square.number;
+      if (move.capture) {
+        ostr << "x";
+      } else {
+        ostr << "-";
+      }
+      ostr << move.new_square.letter << move.new_square.number;
+      if (move.promotion) {
+        ostr << move.promotion;
+      }
+      if (move.mate) {
+        ostr << "#";
+      } else if (move.check) {
+        ostr << "+";
+      }
       break;
   }
-  ostr << std::endl;
-  ostr << "check/mate/stalemate: " << move.check << "/" << move.mate << "/" << move.stalemate << std::endl;
   return ostr;
 }
 
@@ -197,6 +186,7 @@ void MoveCalculator::handleMove(Move& move, bool is_king_capture) {
     if (move.board.whiteToMove()) {
       move.board.incrementNumberOfMoves();
     }
+    updateInsufficientMaterialForMove(move);
     moves_.push_back(move);
   } catch (KingInCheckException& e) {
   }
@@ -231,8 +221,73 @@ void MoveCalculator::updateCheckAndCheckMateForMove(Move& move) const {
   }
 }
 
+void MoveCalculator::updateInsufficientMaterialForMove(Move& move) const {
+  const Board& board = move.board;
+  bool insufficient_material = true;
+  bool white_has_bishop = false;
+  bool black_has_bishop = false;
+  bool white_has_knight = false;
+  bool black_has_knight = false;
+  for (size_t line = 0; line < Board::kBoardSize; ++line) {
+    for (size_t row = 0; row < Board::kBoardSize; ++row) {
+      char figure = board.at(line, row);
+      if (figure == 0x0) {
+        continue;
+      }
+      switch (figure) {
+        case 'Q':
+        case 'q':
+        case 'R':
+        case 'r':
+        case 'P':
+        case 'p':
+          insufficient_material = false;
+          break;
+        case 'B':
+          if (white_has_bishop || white_has_knight) {
+            insufficient_material = false;
+          } else {
+            white_has_bishop = true;
+          }
+          break;
+        case 'b':
+          if (black_has_bishop || black_has_knight) {
+            insufficient_material = false;
+          } else {
+            black_has_bishop = true;
+          }
+          break;
+        case 'N':
+          if (white_has_bishop) {
+            insufficient_material = false;
+          } else {
+            white_has_knight = true;
+          }
+          break;
+        case 'n':
+          if (black_has_bishop) {
+            insufficient_material = false;
+          } else {
+            black_has_knight = true;
+          }
+          break;
+        default:
+          BoardAssert(board, figure == 'K' || figure == 'k');
+          break;
+      }
+      if (insufficient_material == false) {
+        break;
+      }
+    }
+    if (insufficient_material == false) {
+      break;
+    }
+  }
+  move.insufficient_material = insufficient_material;
+}
+
 void MoveCalculator::calculateMovesForPawn(size_t line, size_t row) {
-  assert(board_.at(line, row) == 'p' || board_.at(line, row) == 'P');
+  BoardAssert(board_, board_.at(line, row) == 'p' || board_.at(line, row) == 'P');
   handlePossiblePawnsCapture(line, row);
   if (look_for_king_capture_) {
     // Pawn move cannot beat king.
@@ -273,7 +328,7 @@ void MoveCalculator::calculateMovesForPawn(size_t line, size_t row) {
 }
 
 void MoveCalculator::handlePossiblePawnsCapture(size_t line, size_t row) {
-  assert(board_.at(line, row) == 'p' || board_.at(line, row) == 'P');
+  BoardAssert(board_, board_.at(line, row) == 'p' || board_.at(line, row) == 'P');
   auto helper = [this, line, row](int shift) {
     bool is_white = isWhite(board_.at(line, row));
     size_t forward_row = is_white ? row + 1 : row - 1;
@@ -291,8 +346,8 @@ void MoveCalculator::handlePossiblePawnsCapture(size_t line, size_t row) {
         move.board.setEnPassantTargetSquare(Square::InvalidSquare);
         bool is_king_capture = isKing(board_.at(line + shift, forward_row));
         if (is_en_passant_capture) {
-          assert(move.board.at(line + shift, row) == 'P' ||
-                 move.board.at(line + shift, row) == 'p');
+          BoardAssert(move.board, move.board.at(line + shift, row) == 'P' ||
+                                  move.board.at(line + shift, row) == 'p');
           move.board.at(line + shift, row) = 0x0;
         }
         if (!is_king_capture && isFinalRank(forward_row)) {
