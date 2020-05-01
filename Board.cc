@@ -125,7 +125,9 @@ void Board::setMiscDataFromFEN(std::string partial_fen) {
       throw InvalidFENException(partial_fen);
     }
   } else {
-    if (Square::isValid(en_passant_square) == false) {
+    if (Square::isValid(en_passant_square) == false ||
+        (white_to_move_ && en_passant_square[1] != '6') ||
+        (!white_to_move_ && en_passant_square[1] != '3')) {
       throw InvalidFENException(partial_fen);
     }
     en_passant_target_square_ = en_passant_square;

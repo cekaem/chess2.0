@@ -15,11 +15,14 @@ $(BIN_DIR)/board_tests: $(OBJ_DIR)/Board_t.o $(OBJ_DIR)/Board.o $(OBJ_DIR)/Utils
 $(BIN_DIR)/move_calculator_tests: $(OBJ_DIR)/MoveCalculator_t.o $(OBJ_DIR)/MoveCalculator.o $(OBJ_DIR)/Board.o $(OBJ_DIR)/Utils.o $(OBJ_DIR)/Test.o $(OBJ_DIR)/CommandLineParser.o Board.h Types.h
 	$(CXX) $(CFLAGS) -o $(BIN_DIR)/move_calculator_tests $(OBJ_DIR)/MoveCalculator_t.o $(OBJ_DIR)/MoveCalculator.o $(OBJ_DIR)/Board.o $(OBJ_DIR)/Utils.o $(OBJ_DIR)/Test.o $(OBJ_DIR)/CommandLineParser.o
 
-$(BIN_DIR)/game: $(OBJ_DIR)/Game.o $(OBJ_DIR)/MoveCalculator.o $(OBJ_DIR)/Board.o $(OBJ_DIR)/Utils.o $(OBJ_DIR)/CommandLineParser.o Board.h Types.h
-	$(CXX) $(CFLAGS) -o $(BIN_DIR)/game $(OBJ_DIR)/Game.o $(OBJ_DIR)/MoveCalculator.o $(OBJ_DIR)/Board.o $(OBJ_DIR)/Utils.o $(OBJ_DIR)/CommandLineParser.o
+$(BIN_DIR)/game: $(OBJ_DIR)/Game.o $(OBJ_DIR)/Engine.o $(OBJ_DIR)/MoveCalculator.o $(OBJ_DIR)/Board.o $(OBJ_DIR)/Utils.o $(OBJ_DIR)/CommandLineParser.o Engine.h Board.h Types.h
+	$(CXX) $(CFLAGS) -o $(BIN_DIR)/game $(OBJ_DIR)/Game.o $(OBJ_DIR)/Engine.o $(OBJ_DIR)/MoveCalculator.o $(OBJ_DIR)/Board.o $(OBJ_DIR)/Utils.o $(OBJ_DIR)/CommandLineParser.o
 
 $(OBJ_DIR)/Game.o: Game.cc MoveCalculator.h Board.h Types.h
 	$(CXX) $(CFLAGS) -c -o $(OBJ_DIR)/Game.o Game.cc
+
+$(OBJ_DIR)/Engine.o: Engine.cc Engine.h MoveCalculator.h Board.h Types.h
+	$(CXX) $(CFLAGS) -c -o $(OBJ_DIR)/Engine.o Engine.cc
 
 $(OBJ_DIR)/MoveCalculator_t.o: MoveCalculator_t.cc MoveCalculator.h Board.h utils/Test.h utils/Mock.h Types.h
 	$(CXX) $(CFLAGS) -c -o $(OBJ_DIR)/MoveCalculator_t.o MoveCalculator_t.cc

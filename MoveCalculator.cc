@@ -346,8 +346,8 @@ void MoveCalculator::handlePossiblePawnsCapture(size_t line, size_t row) {
         move.board.setEnPassantTargetSquare(Square::InvalidSquare);
         bool is_king_capture = isKing(board_.at(line + shift, forward_row));
         if (is_en_passant_capture) {
-          BoardAssert(move.board, move.board.at(line + shift, row) == 'P' ||
-                                  move.board.at(line + shift, row) == 'p');
+          BoardAssert(board_, move.board.at(line + shift, row) == 'P' ||
+                              move.board.at(line + shift, row) == 'p');
           move.board.at(line + shift, row) = 0x0;
         }
         if (!is_king_capture && isFinalRank(forward_row)) {
@@ -470,6 +470,7 @@ void MoveCalculator::handlePossibleCastlings(size_t line, size_t row) {
     auto isMoveValid = [this, row](size_t new_line) -> bool {
       Board copy = board_;
       copy.changeSideToMove();
+      copy.setEnPassantTargetSquare(Square::InvalidSquare);
       const char king = copy.at(kKingStartingLine, row);
       assert (king == 'K' || king == 'k');
       copy.at(kKingStartingLine, row) = 0x0;

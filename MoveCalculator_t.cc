@@ -164,6 +164,12 @@ TEST_PROCEDURE(MoveCalculator_pawn_moves) {
     VERIFY_TRUE(MovesContainMove(moves, "8/8/8/8/8/7k/8/6nK w - - 0 2"));
     VERIFY_EQUALS(moves.size(), 7lu);
   }
+  {
+    Board board("rnbqk1nr/1pppb2p/p5p1/5pP1/1P2pP1P/7N/P1PPP1B1/RNBQK2R b KQkq - 0 8");
+    MoveCalculator calculator(board);
+    auto moves = calculator.calculateAllMoves();
+    VERIFY_TRUE(MovesContainMove(moves, "rnbqk1nr/2ppb2p/p5p1/1p3pP1/1P2pP1P/7N/P1PPP1B1/RNBQK2R w KQkq b6 0 9"));
+  }
   TEST_END
 }
 
