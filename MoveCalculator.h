@@ -28,8 +28,6 @@ struct Move {
   bool mate{false};
   bool stalemate{false};
   bool insufficient_material{false};
-  int evaluation{0};  // this field is filled by Engine
-  int moves_to_mate{0};  // this field is filled by Engine
 };
 
 std::ostream& operator<<(std::ostream& ostr, const Move& move);

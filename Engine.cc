@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <ctime>
 
+#include <iostream>
+
 namespace {
 
 constexpr int kQueenValue = 9;
@@ -11,6 +13,8 @@ constexpr int kRookValue = 5;
 constexpr int kBishopValue = 3;
 constexpr int kKnightValue = 3;
 constexpr int kPawnValue = 1;
+
+constexpr int kMateEvaluation = 1000;
 
 // Generates random value out of [0, max)
 unsigned generateRandomValue(int max) {
@@ -51,12 +55,38 @@ int getFigureValue(char figure) {
 
 }  // unnamed namespace
 
+
+struct EngineMove {
+  EngineMove(const Move& m, EngineMove* p, float eval) :
+    move(m), parent(p), evaluation(eval) {
+  }
+
+  void updateBestEvaluation() {
+    bool white_to_move = move.board.whiteToMove();
+    float best_move_value = white_to_move ? -10000.0 : 10000.0;
+    for (auto& move: children) {
+      float move_value = move.evaluation;
+      if ((white_to_move && move_value > best_move_value) ||
+          (!white_to_move && move_value < best_move_value)) {
+        best_move_value = move_value;
+      }
+    }
+    evaluation = best_move_value;
+  }
+
+  Move move;
+  std::vector<EngineMove> children;
+  EngineMove* parent{nullptr};
+  int evaluation{0};
+  int moves_to_mate{0};
+};
+
 Engine::Engine() {
   srand(static_cast<unsigned int>(clock()));
 }
 
-void Engine::calculateMoveEvaluation(Move& move) const {
-  int result = 0;
+float Engine::calculateMoveEvaluation(const Move& move) const {
+  float result = 0.0;
   for (size_t line = 0; line < Board::kBoardSize; ++line) {
     for (size_t row = 0; row < Board::kBoardSize; ++row) {
       char figure = move.board.at(line, row);
@@ -66,53 +96,43 @@ void Engine::calculateMoveEvaluation(Move& move) const {
       result += getFigureValue(figure);
     }
   }
-  move.evaluation = result;
+  return result;
 }
 
-std::pair<int, size_t> Engine::calculateBestEvaluation(std::vector<Move>& moves) const {
-  size_t number_of_best_moves = 0ul;
-  bool white_to_move = moves[0].board.whiteToMove();
-  int best_move_value = white_to_move ? -1000 : 1000;
-  for (auto& move: moves) {
-    calculateMoveEvaluation(move);
-    int move_value = move.evaluation;
-    if (move_value == best_move_value) {
-      ++number_of_best_moves;
-    }
-    if ((white_to_move && move_value > best_move_value) ||
-        (!white_to_move && move_value < best_move_value)) {
-      best_move_value = move_value;
-      number_of_best_moves = 1lu;
+Move Engine::findBestMove(const EngineMove& move) const {
+  float best_evaluation = move.evaluation;
+  std::vector<Move> best_moves;
+  for (const EngineMove& child: move.children) {
+    if (child.evaluation == best_evaluation) {
+      best_moves.push_back(child.move);
     }
   }
-  return std::make_pair(best_move_value, number_of_best_moves);
+  size_t index = generateRandomValue(best_moves.size());
+  return best_moves[index];
 }
 
-size_t Engine::chooseRandomMove(const std::vector<Move>& moves,
-                                std::pair<int, size_t> eval) const {
-  unsigned which_appearance = generateRandomValue(eval.second);
-  unsigned number_of_appearances = 0u;
-  size_t index_of_chossen_move = 0lu;
-  for (size_t index = 0; index < moves.size(); ++index) {
-    if (moves[index].evaluation == eval.first) {
-      if (number_of_appearances == which_appearance) {
-        index_of_chossen_move = index;
-        break;
-      }
-      ++number_of_appearances;
+void Engine::evaluateMove(EngineMove& engine_move) const {
+  if (engine_move.children.empty()) {
+    MoveCalculator calculator(engine_move.move.board);
+    auto moves = calculator.calculateAllMoves();
+    engine_move.children.reserve(moves.size());
+    for (Move& move: moves) {
+      float eval = calculateMoveEvaluation(move);
+      EngineMove e_move(move, &engine_move, eval);
+      engine_move.children.push_back(e_move);
+    }
+  } else {
+    for (EngineMove& child: engine_move.children) {
+      evaluateMove(child);
     }
   }
-  return index_of_chossen_move;
+  engine_move.updateBestEvaluation();
 }
 
 Move Engine::calculateBestMove(const Board& board) {
-  MoveCalculator calculator(board);
-  auto moves = calculator.calculateAllMoves();
-  if (moves.empty()) {
-    throw NoValidMoveException(board.createFEN());
-  }
-  auto best_evaluation = calculateBestEvaluation(moves);
-  size_t index = chooseRandomMove(moves, best_evaluation);
-  assert(index < moves.size());
-  return moves[index];
+  we_play_white_ = board.whiteToMove();
+  Move move(board, 0, 0, 0, 0);
+  EngineMove root(move, nullptr, 0.0);
+  evaluateMove(root);
+  return findBestMove(root);
 }
