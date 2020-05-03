@@ -57,32 +57,125 @@ int getFigureValue(char figure) {
 
 
 struct EngineMove {
-  EngineMove(const Move& m, EngineMove* p, float eval) :
-    move(m), parent(p), evaluation(eval) {
-  }
-
-  void updateBestEvaluation() {
-    bool white_to_move = move.board.whiteToMove();
-    float best_move_value = white_to_move ? -10000.0 : 10000.0;
-    for (auto& move: children) {
-      float move_value = move.evaluation;
-      if ((white_to_move && move_value > best_move_value) ||
-          (!white_to_move && move_value < best_move_value)) {
-        best_move_value = move_value;
-      }
+  EngineMove(const Move& m, float eval)
+    : move_(m), evaluation_(eval) {
+    if (move_.mate) {
+      moves_to_mate_ = move_.board.whiteToMove() ? -1 : 1;
     }
-    evaluation = best_move_value;
   }
 
-  Move move;
-  std::vector<EngineMove> children;
-  EngineMove* parent{nullptr};
-  int evaluation{0};
-  int moves_to_mate{0};
+  Move move_;
+  std::vector<EngineMove> children_;
+  int evaluation_{0};
+  int moves_to_mate_{0};
 };
 
 Engine::Engine() {
   srand(static_cast<unsigned int>(clock()));
+}
+
+void Engine::findBorderValuesInChildren(
+    const EngineMove& move,
+    int& the_biggest_value,
+    int& the_lowest_value,
+    int& the_biggest_negative_value,
+    int& the_lowest_positive_value,
+    bool& is_move_without_mate) const {
+  the_biggest_value = -10000;
+  the_lowest_value = 10000;
+  the_biggest_negative_value = -10000;
+  the_lowest_positive_value = 10000;
+  is_move_without_mate = false;
+  for (const auto& child: move.children_) {
+    const int mate_in = child.moves_to_mate_;
+    if (mate_in == 0) {
+      is_move_without_mate = true;
+    } else if (mate_in > 0 && mate_in < the_lowest_positive_value) {
+      the_lowest_positive_value = mate_in;
+    } else if (mate_in < 0 && mate_in > the_biggest_negative_value) {
+      the_biggest_negative_value = mate_in;
+    }
+    if (mate_in > the_biggest_value) {
+      the_biggest_value = mate_in;
+    }
+    if (mate_in < the_lowest_value) {
+      the_lowest_value = mate_in;
+    }
+  }
+  if (the_biggest_negative_value == -10000) {
+    the_biggest_negative_value = 0;
+  }
+  if (the_lowest_positive_value == 10000) {
+    the_lowest_positive_value = 0;
+  }
+}
+
+void Engine::updateMovesToMate(EngineMove& move) const {
+  int the_biggest_value;
+  int the_lowest_value;
+  int the_biggest_negative_value;
+  int the_lowest_positive_value;
+  bool is_move_without_mate;
+  findBorderValuesInChildren(move,
+                             the_biggest_value,
+                             the_lowest_value,
+                             the_biggest_negative_value,
+                             the_lowest_positive_value,
+                             is_move_without_mate);
+
+  const bool white_to_move = move.move_.board.whiteToMove();
+  if (white_to_move) {
+    if (the_lowest_positive_value > 0) {
+      move.moves_to_mate_ = the_lowest_positive_value + 1;
+    } else if (is_move_without_mate) {
+      move.moves_to_mate_ = 0;
+    } else {
+      assert(the_lowest_value < 0);
+      move.moves_to_mate_ = the_lowest_value - 1;
+    }
+  } else {
+    if (the_biggest_negative_value < 0) {
+      move.moves_to_mate_ = the_biggest_negative_value - 1;
+    } else if (is_move_without_mate) {
+       move.moves_to_mate_ = 0;
+    } else {
+      assert(the_biggest_value > 0);
+      move.moves_to_mate_ = the_biggest_value + 1;
+    }
+  }
+}
+
+void Engine::evaluateMove(EngineMove& engine_move) const {
+  if (engine_move.children_.empty()) {
+    MoveCalculator calculator(engine_move.move_.board);
+    auto moves = calculator.calculateAllMoves();
+    engine_move.children_.reserve(moves.size());
+    for (Move& move: moves) {
+      float eval = calculateMoveEvaluation(move);
+      EngineMove new_move(move, eval);
+      engine_move.children_.push_back(new_move);
+    }
+  } else {
+    for (EngineMove& child: engine_move.children_) {
+      evaluateMove(child);
+    }
+  }
+  updateMovesToMate(engine_move);
+  updateBestEvaluation(engine_move);
+}
+
+
+void Engine::updateBestEvaluation(EngineMove& move) const {
+  bool white_to_move = move.move_.board.whiteToMove();
+  float best_move_value = white_to_move ? -10000.0 : 10000.0;
+  for (auto& child: move.children_) {
+    float move_value = child.evaluation_;
+    if ((white_to_move && move_value > best_move_value) ||
+        (!white_to_move && move_value < best_move_value)) {
+      best_move_value = move_value;
+    }
+  }
+  move.evaluation_ = best_move_value;
 }
 
 float Engine::calculateMoveEvaluation(const Move& move) const {
@@ -99,40 +192,26 @@ float Engine::calculateMoveEvaluation(const Move& move) const {
   return result;
 }
 
-Move Engine::findBestMove(const EngineMove& move) const {
-  float best_evaluation = move.evaluation;
+Move Engine::findBestMove(const EngineMove& parent) const {
+  float best_evaluation = parent.evaluation_;
   std::vector<Move> best_moves;
-  for (const EngineMove& child: move.children) {
-    if (child.evaluation == best_evaluation) {
-      best_moves.push_back(child.move);
+  int shift = parent.move_.board.whiteToMove() ? 1 : -1;
+  for (const EngineMove& child: parent.children_) {
+    if (parent.moves_to_mate_ != 0) {
+      if (child.moves_to_mate_ + shift == parent.moves_to_mate_) {
+        best_moves.push_back(child.move_);
+      }
+    } else if (child.evaluation_ == best_evaluation) {
+      best_moves.push_back(child.move_);
     }
   }
   size_t index = generateRandomValue(best_moves.size());
   return best_moves[index];
 }
 
-void Engine::evaluateMove(EngineMove& engine_move) const {
-  if (engine_move.children.empty()) {
-    MoveCalculator calculator(engine_move.move.board);
-    auto moves = calculator.calculateAllMoves();
-    engine_move.children.reserve(moves.size());
-    for (Move& move: moves) {
-      float eval = calculateMoveEvaluation(move);
-      EngineMove e_move(move, &engine_move, eval);
-      engine_move.children.push_back(e_move);
-    }
-  } else {
-    for (EngineMove& child: engine_move.children) {
-      evaluateMove(child);
-    }
-  }
-  engine_move.updateBestEvaluation();
-}
-
 Move Engine::calculateBestMove(const Board& board) {
-  we_play_white_ = board.whiteToMove();
   Move move(board, 0, 0, 0, 0);
-  EngineMove root(move, nullptr, 0.0);
+  EngineMove root(move, 0.0);
   evaluateMove(root);
   return findBestMove(root);
 }

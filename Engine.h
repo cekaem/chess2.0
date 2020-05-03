@@ -23,8 +23,15 @@ class Engine {
   void evaluateMove(EngineMove& engine_move) const;
   Move findBestMove(const EngineMove& move) const;
   float calculateMoveEvaluation(const Move& move) const;
-
-  bool we_play_white_;
+  void updateBestEvaluation(EngineMove& move) const;
+  void updateMovesToMate(EngineMove& move) const;
+  void findBorderValuesInChildren(
+      const EngineMove& move,
+      int& the_biggest_value,
+      int& the_lowest_value,
+      int& the_biggest_negative_value,
+      int& the_lowest_positive_value,
+      bool& is_move_without_mate) const;
 };
 
 #endif // ENGINE_H
