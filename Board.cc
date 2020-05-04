@@ -2,7 +2,8 @@
 
 #include "utils/Utils.h"
 
-Square Square::InvalidSquare = {0, 0};
+Square Square::InvalidSquare = {static_cast<size_t>(-1),
+                                static_cast<size_t>(-1)};
 
 std::ostream& operator<<(std::ostream& ostr, const Board& move) {
   ostr << move.createFEN();

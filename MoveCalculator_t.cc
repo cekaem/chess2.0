@@ -456,6 +456,14 @@ TEST_START
 TEST_END
 }
 
+TEST_PROCEDURE(Regressions) {
+TEST_START
+  Board board("r5kr/4nqnp/p1p3p1/P7/1P3N2/4Qb2/1p1N1P2/2B2KR1 b - - 0 42");
+  MoveCalculator calculator(board);
+  calculator.calculateAllMoves();
+TEST_END
+}
+
 TEST_PROCEDURE(InitialBoard) {
 TEST_START
   Board board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
