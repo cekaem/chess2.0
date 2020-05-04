@@ -54,11 +54,6 @@ std::ostream& operator<<(std::ostream& ostr, const Move& move) {
       if (move.promotion) {
         ostr << move.promotion;
       }
-      if (move.mate) {
-        ostr << "#";
-      } else if (move.check) {
-        ostr << "+";
-      }
       break;
   }
   return ostr;
@@ -93,7 +88,7 @@ void MoveCalculator::calculateAllMovesForFigure(size_t line, size_t row) {
   }
 }
 
-void MoveCalculator::calculateAllMovesInternal() {
+std::vector<Move> MoveCalculator::calculateAllMoves() {
   for (size_t line = 0; line < Board::kBoardSize; ++line) {
     for (size_t row = 0; row < Board::kBoardSize; ++row) {
       char square = board_.at(line, row);
@@ -102,11 +97,6 @@ void MoveCalculator::calculateAllMovesInternal() {
       }
     }
   }
-}
-
-std::vector<Move> MoveCalculator::calculateAllMoves() {
-  calculateAllMovesInternal();
-  updateCheckAndCheckMateForAllMoves();
   return moves_;
 }
 
@@ -181,7 +171,7 @@ void MoveCalculator::handleMove(Move& move, bool is_king_capture) {
   move.board.changeSideToMove();
   try {
     MoveCalculator calculator(move.board, true);
-    calculator.calculateAllMovesInternal();
+    calculator.calculateAllMoves();
     // Exception KingInCheckException was not thrown so move is valid.
     if (move.board.whiteToMove()) {
       move.board.incrementNumberOfMoves();
@@ -192,33 +182,17 @@ void MoveCalculator::handleMove(Move& move, bool is_king_capture) {
   }
 }
 
-void MoveCalculator::updateCheckAndCheckMateForAllMoves() {
-  for (Move& move: moves_) {
-    updateCheckAndCheckMateForMove(move);
-  }
-}
-
-void MoveCalculator::updateCheckAndCheckMateForMove(Move& move) const {
-  Square en_passant_square = move.board.getEnPassantTargetSquare();
-  move.board.setEnPassantTargetSquare(Square::InvalidSquare);
-  move.board.changeSideToMove();
+bool MoveCalculator::isCheck() const {
+  Board copy = board_;
+  copy.changeSideToMove();
+  MoveCalculator calculator(copy, true);
+  bool is_check = false;
   try {
-    MoveCalculator calculator(move.board, true);
     calculator.calculateAllMoves();
-  } catch (KingInCheckException& e) {
-    move.check = true;
+  } catch (KingInCheckException&) {
+    is_check = true;
   }
-  move.board.setEnPassantTargetSquare(en_passant_square);
-  move.board.changeSideToMove();
-  MoveCalculator calculator(move.board);
-  calculator.calculateAllMovesInternal();
-  if (calculator.moves_.size() == 0) {
-    if (move.check) {
-      move.mate = true;
-    } else {
-      move.stalemate = true;
-    }
-  }
+  return is_check;
 }
 
 void MoveCalculator::updateInsufficientMaterialForMove(Move& move) const {

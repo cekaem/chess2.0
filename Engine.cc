@@ -56,11 +56,7 @@ int getFigureValue(char figure) {
 
 struct EngineMove {
   EngineMove(const Move& m, float eval)
-    : move_(m), evaluation_(eval) {
-    if (move_.mate) {
-      moves_to_mate_ = move_.board.whiteToMove() ? -1 : 1;
-    }
-  }
+    : move_(m), evaluation_(eval) {}
 
   Move move_;
   std::vector<EngineMove> children_;
@@ -150,6 +146,14 @@ void Engine::evaluateMove(EngineMove& engine_move) const {
   if (engine_move.children_.empty()) {
     MoveCalculator calculator(engine_move.move_.board);
     auto moves = calculator.calculateAllMoves();
+    if (moves.empty()) {
+      if (calculator.isCheck()) {
+        engine_move.moves_to_mate_ = engine_move.move_.board.whiteToMove() ? -1 : 1;
+      } else {
+        // stalemate
+        engine_move.evaluation_ = 0;
+      }
+    }
     engine_move.children_.reserve(moves.size());
     for (Move& move: moves) {
       float eval = calculateMoveEvaluation(move);
@@ -219,6 +223,9 @@ Move Engine::calculateBestMove(const Board& board, size_t depth) {
   EngineMove root(move, 0.0);
   for (size_t i = 0; i < depth; ++i) {
     evaluateMove(root);
+  }
+  if (root.children_.empty()) {
+    throw NoValidMoveException(board.createFEN());
   }
   return findBestMove(root);
 }

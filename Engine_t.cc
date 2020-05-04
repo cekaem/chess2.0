@@ -37,12 +37,12 @@ TEST_PROCEDURE(Engine_finds_mate_in_one) {
   Engine engine;
   {
     Board board("8/8/8/8/8/5K1k/5Q2/8 w - - 0 1");
-    Move move = engine.calculateBestMove(board, 1);
+    Move move = engine.calculateBestMove(board, 2);
     VERIFY_TRUE(MovesEqual(move, "8/8/8/8/8/5KQk/8/8 b - - 1 1"));
   }
   {
     Board board("6K1/8/6k1/3Qr3/8/8/8/8 b - - 0 1");
-    Move move = engine.calculateBestMove(board, 1);
+    Move move = engine.calculateBestMove(board, 2);
     VERIFY_TRUE(MovesEqual(move, "4r1K1/8/6k1/3Q4/8/8/8/8 w - - 1 2"));
   }
   TEST_END

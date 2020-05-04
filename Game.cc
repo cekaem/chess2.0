@@ -11,10 +11,14 @@ int main() {
   Board board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   bool cont = true;
   while (cont) {
-    Move move = engine.calculateBestMove(board, 3);
-    std::cout << move << std::endl;
-    board = move.board;
-    cont = !move.mate && !move.stalemate && !move.insufficient_material;
+    try {
+      Move move = engine.calculateBestMove(board, 4);
+      std::cout << move << std::endl;
+      board = move.board;
+      cont = cont && !move.insufficient_material;
+    } catch (Engine::NoValidMoveException&) {
+      cont = false;
+    }
   }
   return 0;
 }
