@@ -24,7 +24,7 @@ $(BIN_DIR)/game: $(OBJ_DIR)/Game.o $(OBJ_DIR)/Engine.o $(OBJ_DIR)/MoveCalculator
 $(OBJ_DIR)/Engine_t.o: Engine_t.cc Engine.h MoveCalculator.h Board.h Types.h
 	$(CXX) $(CFLAGS) -c -o $(OBJ_DIR)/Engine_t.o Engine_t.cc
 
-$(OBJ_DIR)/Game.o: Game.cc MoveCalculator.h Board.h Types.h
+$(OBJ_DIR)/Game.o: Game.cc MoveCalculator.h Board.h Types.h Engine.h
 	$(CXX) $(CFLAGS) -c -o $(OBJ_DIR)/Game.o Game.cc
 
 $(OBJ_DIR)/Engine.o: Engine.cc Engine.h MoveCalculator.h Board.h Types.h

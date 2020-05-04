@@ -14,8 +14,6 @@ constexpr int kBishopValue = 3;
 constexpr int kKnightValue = 3;
 constexpr int kPawnValue = 1;
 
-constexpr int kMateEvaluation = 1000;
-
 // Generates random value out of [0, max)
 unsigned generateRandomValue(int max) {
   return rand() % max;
@@ -146,6 +144,9 @@ void Engine::updateMovesToMate(EngineMove& move) const {
 }
 
 void Engine::evaluateMove(EngineMove& engine_move) const {
+  if (engine_move.moves_to_mate_ != 0) {
+    return;
+  }
   if (engine_move.children_.empty()) {
     MoveCalculator calculator(engine_move.move_.board);
     auto moves = calculator.calculateAllMoves();
@@ -160,8 +161,10 @@ void Engine::evaluateMove(EngineMove& engine_move) const {
       evaluateMove(child);
     }
   }
-  updateMovesToMate(engine_move);
-  updateBestEvaluation(engine_move);
+  if (!engine_move.children_.empty()) {
+    updateMovesToMate(engine_move);
+    updateBestEvaluation(engine_move);
+  }
 }
 
 
@@ -179,6 +182,7 @@ void Engine::updateBestEvaluation(EngineMove& move) const {
 }
 
 float Engine::calculateMoveEvaluation(const Move& move) const {
+  ++nodes_calculated_;
   float result = 0.0;
   for (size_t line = 0; line < Board::kBoardSize; ++line) {
     for (size_t row = 0; row < Board::kBoardSize; ++row) {
@@ -209,9 +213,12 @@ Move Engine::findBestMove(const EngineMove& parent) const {
   return best_moves[index];
 }
 
-Move Engine::calculateBestMove(const Board& board) {
+Move Engine::calculateBestMove(const Board& board, size_t depth) {
+  nodes_calculated_ = 0ull;
   Move move(board, 0, 0, 0, 0);
   EngineMove root(move, 0.0);
-  evaluateMove(root);
+  for (size_t i = 0; i < depth; ++i) {
+    evaluateMove(root);
+  }
   return findBestMove(root);
 }

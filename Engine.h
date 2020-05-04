@@ -17,7 +17,7 @@ class Engine {
   };
 
   Engine();
-  Move calculateBestMove(const Board& board);
+  Move calculateBestMove(const Board& board, size_t depth);
 
  private:
   void evaluateMove(EngineMove& engine_move) const;
@@ -32,6 +32,8 @@ class Engine {
       int& the_biggest_negative_value,
       int& the_lowest_positive_value,
       bool& is_move_without_mate) const;
+
+  mutable unsigned long long nodes_calculated_{0ull};
 };
 
 #endif // ENGINE_H
