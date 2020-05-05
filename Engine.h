@@ -1,6 +1,7 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -16,8 +17,16 @@ class Engine {
     const std::string fen;
   };
 
-  Engine(size_t depth, size_t time_for_move_ms);
+  struct MoveStats {
+    const Move move;
+    const unsigned depth;
+    const unsigned long long nodes;
+    const long time_ms;
+  };
+
+  Engine(unsigned depth, unsigned time_for_move_ms);
   Move calculateBestMove(const Board& board);
+  void setStatsCallback(std::function<void(MoveStats)> callback);
 
  private:
   void evaluateMove(EngineMove& engine_move) const;
@@ -35,8 +44,9 @@ class Engine {
   void timerCallback();
 
   bool time_out_{false};
-  size_t depth_{1};
-  size_t time_for_move_ms_{1000};
+  unsigned depth_{1};
+  unsigned time_for_move_ms_{1000};
+  std::function<void(MoveStats)> stats_callback_;
   mutable unsigned long long nodes_calculated_{0ull};
 };
 

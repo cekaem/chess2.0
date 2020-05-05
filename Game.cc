@@ -1,5 +1,4 @@
 #include <cassert>
-#include <chrono>
 #include <iostream>
 #include <sstream>
 
@@ -21,7 +20,7 @@ class PGNCreator {
 
   void onMoveMade(const Move& move) {
     std::stringstream move_str;
-    move_str << move << std::endl;
+    move_str << move;
     moves_.push_back(move_str.str());
   }
 
@@ -44,6 +43,10 @@ class PGNCreator {
     output_stream_ << "[Result \"" << result_string << "\"]" << std::endl;
     for (const auto& move: moves_) {
       output_stream_ << move;
+      if (result != GameResult::DRAW) {
+        output_stream_ << "#";
+      }
+      output_stream_ << std::endl;
     }
     output_stream_ << result_string << std::endl;
   }
@@ -53,22 +56,28 @@ class PGNCreator {
   std::vector<std::string> moves_;
 };
 
+void statsCollector(Engine::MoveStats stats) {
+  std::cerr << stats.move << std::endl;
+  std::cerr << "Time elapsed (ms): " << stats.time_ms << std::endl;
+  std::cerr << "Nodes calculated : " << stats.nodes << std::endl;
+  std::cerr << "Reached depth    : " << stats.depth << std::endl;
+  std::cerr << "==========================" << std::endl;
+}
+
 }  // unnamed namespace
 
 int main() {
   PGNCreator pgn_creator(std::cout);
   Engine engine(6, 5000);
+  engine.setStatsCallback(statsCollector);
   Board board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   bool cont = true;
   bool was_mate = false;
+
   while (cont) {
     try {
-      auto start_time = std::chrono::steady_clock::now();
       Move move = engine.calculateBestMove(board);
       pgn_creator.onMoveMade(move);
-      auto end_time = std::chrono::steady_clock::now();
-      auto time_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-      std::cout << move << " (" << time_elapsed << "ms)" << std::endl;
       board = move.board;
       cont = cont && !move.insufficient_material;
     } catch (Engine::NoValidMoveException&) {

@@ -1,6 +1,7 @@
 #include "Engine.h"
 
 #include <cassert>
+#include <chrono>
 #include <cstdlib>
 #include <ctime>
 
@@ -66,9 +67,13 @@ struct EngineMove {
   int moves_to_mate_{0};
 };
 
-Engine::Engine(size_t depth, size_t time_for_move_ms)
+Engine::Engine(unsigned depth, unsigned time_for_move_ms)
  : depth_(depth), time_for_move_ms_(time_for_move_ms) {
   srand(static_cast<unsigned int>(clock()));
+}
+
+void Engine::setStatsCallback(std::function<void(MoveStats)> callback) {
+  stats_callback_ = callback;
 }
 
 void Engine::findBorderValuesInChildren(
@@ -225,18 +230,28 @@ void Engine::timerCallback() {
 }
 
 Move Engine::calculateBestMove(const Board& board) {
+  auto start_time = std::chrono::steady_clock::now();
   utils::Timer timer;
   nodes_calculated_ = 0ull;
   Move move(board, 0, 0, 0, 0);
   EngineMove root(move, 0.0);
   time_out_ = false;
   timer.start(time_for_move_ms_, std::bind(&Engine::timerCallback, this));
-  for (size_t i = 0; i < depth_; ++i) {
+  unsigned depth = 0;
+  for (; depth < depth_; ++depth) {
     evaluateMove(root);
   }
   timer.stop();
   if (root.children_.empty()) {
     throw NoValidMoveException(board.createFEN());
   }
-  return findBestMove(root);
+  auto result = findBestMove(root);
+  auto end_time = std::chrono::steady_clock::now();
+  auto time_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+      end_time - start_time).count();
+  if (stats_callback_) {
+    MoveStats stats{result, depth, nodes_calculated_, time_elapsed};
+    stats_callback_(stats);
+  }
+  return result;
 }
