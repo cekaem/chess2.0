@@ -6,6 +6,8 @@
 
 #include <iostream>
 
+#include "utils/Timer.h"
+
 namespace {
 
 constexpr int kQueenValue = 9;
@@ -64,7 +66,8 @@ struct EngineMove {
   int moves_to_mate_{0};
 };
 
-Engine::Engine() {
+Engine::Engine(size_t depth, size_t time_for_move_ms)
+ : depth_(depth), time_for_move_ms_(time_for_move_ms) {
   srand(static_cast<unsigned int>(clock()));
 }
 
@@ -160,7 +163,7 @@ void Engine::evaluateMove(EngineMove& engine_move) const {
       EngineMove new_move(move, eval);
       engine_move.children_.push_back(new_move);
     }
-  } else {
+  } else if (!time_out_) {
     for (EngineMove& child: engine_move.children_) {
       evaluateMove(child);
     }
@@ -217,13 +220,21 @@ Move Engine::findBestMove(const EngineMove& parent) const {
   return best_moves[index];
 }
 
-Move Engine::calculateBestMove(const Board& board, size_t depth) {
+void Engine::timerCallback() {
+  time_out_ = true;
+}
+
+Move Engine::calculateBestMove(const Board& board) {
+  utils::Timer timer;
   nodes_calculated_ = 0ull;
   Move move(board, 0, 0, 0, 0);
   EngineMove root(move, 0.0);
-  for (size_t i = 0; i < depth; ++i) {
+  time_out_ = false;
+  timer.start(time_for_move_ms_, std::bind(&Engine::timerCallback, this));
+  for (size_t i = 0; i < depth_; ++i) {
     evaluateMove(root);
   }
+  timer.stop();
   if (root.children_.empty()) {
     throw NoValidMoveException(board.createFEN());
   }

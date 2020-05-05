@@ -16,8 +16,8 @@ class Engine {
     const std::string fen;
   };
 
-  Engine();
-  Move calculateBestMove(const Board& board, size_t depth);
+  Engine(size_t depth, size_t time_for_move_ms);
+  Move calculateBestMove(const Board& board);
 
  private:
   void evaluateMove(EngineMove& engine_move) const;
@@ -32,7 +32,11 @@ class Engine {
       int& the_biggest_negative_value,
       int& the_lowest_positive_value,
       bool& is_move_without_mate) const;
+  void timerCallback();
 
+  bool time_out_{false};
+  size_t depth_{1};
+  size_t time_for_move_ms_{1000};
   mutable unsigned long long nodes_calculated_{0ull};
 };
 
